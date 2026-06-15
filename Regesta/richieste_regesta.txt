@@ -2,9 +2,19 @@ richiesta:
 -creare un sistema di prenotazione di visite mediche
 -(mobile app)
 
-obbiettivi(miei):
+obbiettivi(nostri):
 -sistema intuitivo
 -basato sul calendario
 -menù interattivo e personalizzabile
 -orario basato sul tipo di visita
 -prenotazione tramite ticket univoco
+
+TO_DO:
+-database
+-lock nelle tls
+-front end da rifare
+-gestione + utenti (database online)
+-sicurezza da implementare
+-versione admin (dottori)[non necessaria]
+
+
