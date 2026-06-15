@@ -41,15 +41,15 @@ def main(page: ft.Page):
             ft.Container(height=20),
 
             ft.Text(
-                "Benvenuto nella tua App Medica",
-                size=24,
+                "Medical Booking Hub",
+                size=33,
                 weight=ft.FontWeight.BOLD,
                 text_align=ft.TextAlign.CENTER,
             ),
 
             ft.Text( 
-                "Cosa desideri fare oggi?",
-                size=16,
+                "La tua agenda medica, semplificata",
+                size=22,
                 color=ft.Colors.GREY_400,
                 text_align=ft.TextAlign.CENTER,
             ),
