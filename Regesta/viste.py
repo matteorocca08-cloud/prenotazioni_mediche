@@ -257,69 +257,13 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     )
 
 
-def crea_vista_visualizza(torna_home):
-    lista_visite = ft.Column(
-        scroll=ft.ScrollMode.AUTO,
-        expand=True,
-    )
-
-    dati = ottieni_visite_db()
-
-    if not dati:
-        lista_visite.controls.append(
-            ft.Text(
-                "Nessuna visita prenotata.",
-                color=ft.Colors.GREY_500,
-            )
-        )
-    else:
-        for data_ora, tipo, ticket in dati:
-            lista_visite.controls.append(
-                ft.Card(
-                    content=ft.Container(
-                        padding=15,
-                        content=ft.Column(
-                            [
-                                ft.Text(
-                                    f"📅 Data/Ora: {data_ora}",
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-                                ft.Text(f"🩺 Tipo visita: {tipo}"),
-                                ft.Text(
-                                    f"🎫 Ticket: {ticket}",
-                                    color=ft.Colors.BLUE_300,
-                                ),
-                            ]
-                        ),
-                    )
-                )
-            )
-
-    return ft.Column(
-        [
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                on_click=torna_home,
-            ),
-
-            ft.Text(
-                "Le Tue Visite",
-                size=24,
-                weight=ft.FontWeight.BOLD,
-            ),
-
-            lista_visite,
-        ],
-        expand=True,
-    )
-
 def crea_vista_visualizza(page: ft.Page, torna_home):
     lista_visite = ft.Column(
         scroll=ft.ScrollMode.AUTO,
         expand=True,
     )
 
-    # 1. POP-UP PER MOSTRARE IL TICKET IN GRANDE
+    # 1. POP-UP PER MOSTRARE IL TICKET IN GRANDE (Configurato in memoria)
     testo_dettaglio_ticket = ft.Text("", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK)
     testo_dettaglio_info = ft.Text("", size=16, color=ft.Colors.WHITE)
 
@@ -337,7 +281,7 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
                     bgcolor=ft.Colors.AMBER_400,
                     padding=15,
                     border_radius=8,
-                    alignment=ft.Alignment(0, 0), # <-- Sostituito qui! Centro perfetto
+                    alignment=ft.Alignment(0, 0), # Fix Allineamento sicuro per tutte le versioni di Flet
                 ),
                 ft.Divider(),
                 testo_dettaglio_info,
@@ -351,17 +295,18 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
-    # Agganciamo il dialog all'overlay della pagina per renderlo visibile
-    page.overlay.append(dialog_ticket)
+    # PUNTO 4 BLINDATO: Evita l'accumulo di duplicati nell'overlay quando si naviga avanti/indietro
+    if dialog_ticket not in page.overlay:
+        page.overlay.append(dialog_ticket)
 
-    # 2. FUNZIONE CHE APRE IL POP-UP CON I DATI DELLA VISITA CLICCATA
+    # 2. FUNZIONE INTERNA PER APRIRE IL POP-UP CON I DATI SPECIFICI DELLA VISITA
     def mostra_ticket_grande(data_ora, tipo, ticket):
         testo_dettaglio_ticket.value = ticket
         testo_dettaglio_info.value = f"📅 Data/Ora: {data_ora}\n🩺 Tipo visita: {tipo}"
         dialog_ticket.open = True
         page.update()
 
-    # 3. CARICAMENTO DATI DAL DB
+    # 3. CARICAMENTO DATI DAL DATABASE
     dati = ottieni_visite_db()
 
     if not dati:
@@ -374,10 +319,10 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
     else:
         for data_ora, tipo, ticket in dati:
             lista_visite.controls.append(
-                # Il GestureDetector intercetta il click su tutta la card
+                # Il GestureDetector intercetta il click sull'intera tessera
                 ft.GestureDetector(
                     on_tap=lambda e, d=data_ora, t=tipo, tk=ticket: mostra_ticket_grande(d, t, tk),
-                    mouse_cursor=ft.MouseCursor.CLICK, # Fa spuntare l'icona della manina
+                    mouse_cursor=ft.MouseCursor.CLICK, # Mostra l'icona della manina (Clickable)
                     content=ft.Card(
                         content=ft.Container(
                             padding=15,
@@ -416,7 +361,6 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
         ],
         expand=True,
     )
-
 
 def crea_vista_disdici(page: ft.Page, torna_home):
     # Supporto di memoria per sapere quale riga l'utente ha intenzione di eliminare
