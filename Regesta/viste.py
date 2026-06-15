@@ -313,6 +313,110 @@ def crea_vista_visualizza(torna_home):
         expand=True,
     )
 
+def crea_vista_visualizza(page: ft.Page, torna_home):
+    lista_visite = ft.Column(
+        scroll=ft.ScrollMode.AUTO,
+        expand=True,
+    )
+
+    # 1. POP-UP PER MOSTRARE IL TICKET IN GRANDE
+    testo_dettaglio_ticket = ft.Text("", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK)
+    testo_dettaglio_info = ft.Text("", size=16, color=ft.Colors.WHITE)
+
+    def chiudi_dialog_ticket(e):
+        dialog_ticket.open = False
+        page.update()
+
+    dialog_ticket = ft.AlertDialog(
+        title=ft.Text("Dettaglio Prenotazione", weight=ft.FontWeight.BOLD),
+        content=ft.Column(
+            [
+                ft.Text("Mostra questo ticket al personale:"),
+                ft.Container(
+                    content=testo_dettaglio_ticket,
+                    bgcolor=ft.Colors.AMBER_400,
+                    padding=15,
+                    border_radius=8,
+                    alignment=ft.Alignment(0, 0), # <-- Sostituito qui! Centro perfetto
+                ),
+                ft.Divider(),
+                testo_dettaglio_info,
+            ],
+            tight=True,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        actions=[
+            ft.TextButton("Chiudi", on_click=chiudi_dialog_ticket)
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+
+    # Agganciamo il dialog all'overlay della pagina per renderlo visibile
+    page.overlay.append(dialog_ticket)
+
+    # 2. FUNZIONE CHE APRE IL POP-UP CON I DATI DELLA VISITA CLICCATA
+    def mostra_ticket_grande(data_ora, tipo, ticket):
+        testo_dettaglio_ticket.value = ticket
+        testo_dettaglio_info.value = f"📅 Data/Ora: {data_ora}\n🩺 Tipo visita: {tipo}"
+        dialog_ticket.open = True
+        page.update()
+
+    # 3. CARICAMENTO DATI DAL DB
+    dati = ottieni_visite_db()
+
+    if not dati:
+        lista_visite.controls.append(
+            ft.Text(
+                "Nessuna visita prenotata.",
+                color=ft.Colors.GREY_500,
+            )
+        )
+    else:
+        for data_ora, tipo, ticket in dati:
+            lista_visite.controls.append(
+                # Il GestureDetector intercetta il click su tutta la card
+                ft.GestureDetector(
+                    on_tap=lambda e, d=data_ora, t=tipo, tk=ticket: mostra_ticket_grande(d, t, tk),
+                    mouse_cursor=ft.MouseCursor.CLICK, # Fa spuntare l'icona della manina
+                    content=ft.Card(
+                        content=ft.Container(
+                            padding=15,
+                            content=ft.Column(
+                                [
+                                    ft.Text(
+                                        f"📅 Data/Ora: {data_ora}",
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                    ft.Text(f"🩺 Tipo visita: {tipo}"),
+                                    ft.Text(
+                                        f"🎫 Ticket: {ticket}",
+                                        color=ft.Colors.BLUE_300,
+                                    ),
+                                ]
+                            ),
+                        )
+                    )
+                )
+            )
+
+    return ft.Column(
+        [
+            ft.IconButton(
+                icon=ft.Icons.ARROW_BACK,
+                on_click=torna_home,
+            ),
+
+            ft.Text(
+                "Le Tue Visite",
+                size=24,
+                weight=ft.FontWeight.BOLD,
+            ),
+
+            lista_visite,
+        ],
+        expand=True,
+    )
+
 
 def crea_vista_disdici(page: ft.Page, torna_home):
     # Supporto di memoria per sapere quale riga l'utente ha intenzione di eliminare

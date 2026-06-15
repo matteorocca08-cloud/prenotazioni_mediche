@@ -28,7 +28,8 @@ def main(page: ft.Page):
         page.update()
 
     def vai_a_visualizza(e):
-        contenitore_app.content = v.crea_vista_visualizza(mostra_home)
+        # AGGIUNTO 'page, ' prima di mostra_home 
+        contenitore_app.content = v.crea_vista_visualizza(page, mostra_home)
         page.update()
 
     def vai_a_disdici(e):
