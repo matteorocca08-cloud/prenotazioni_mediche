@@ -46,7 +46,7 @@ def main(page: ft.Page):
                 text_align=ft.TextAlign.CENTER,
             ),
 
-            ft.Text(
+            ft.Text( 
                 "Cosa desideri fare oggi?",
                 size=16,
                 color=ft.Colors.GREY_400,

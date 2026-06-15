@@ -7,19 +7,53 @@ from database import (
 )
 
 
-import flet as ft
-
-from database import (
-    inserisci_prenotazione_db,
-    ottieni_visite_db,
-    elimina_prenotazione_db,
-)
-
-
 def crea_vista_prenota(page: ft.Page, torna_home):
     data_selezionata = ""
     ora_selezionata = ""
 
+    # 1. CREAZIONE DEL TESTO DINAMICO E DEL DIALOG ALL'INIZIO della funzione
+    testo_ticket_dinamico = ft.Text(
+        "", 
+        size=22, 
+        weight=ft.FontWeight.BOLD, 
+        color=ft.Colors.BLACK
+    )
+
+    def chiudi_mio_dialog(e):
+        dialog_conferma.open = False
+        page.update()
+        torna_home(e)
+
+    dialog_conferma = ft.AlertDialog(
+        modal=True,
+        title=ft.Text(
+            "Prenotazione Confermata", 
+            color=ft.Colors.GREEN_400
+        ),
+        content=ft.Column(
+            [
+                ft.Text(
+                    "Il tuo ticket univoco è:", 
+                    weight=ft.FontWeight.BOLD
+                ),
+                ft.Container(
+                    content=testo_ticket_dinamico,  # Agganceremo il valore dopo
+                    bgcolor=ft.Colors.AMBER_300,
+                    padding=10,
+                    border_radius=8,
+                ),
+            ],
+            tight=True,
+        ),
+        actions=[
+            ft.TextButton("OK", on_click=chiudi_mio_dialog)
+        ],
+    )
+    
+    # REGISTRAZIONE PREVENTIVA: Carichiamo subito il pop-up nell'overlay della pagina
+    page.overlay.append(dialog_conferma)
+
+    # 2. CREAZIONE DEGLI ALTRI ELEMENTI GRAFICI DELLA SCHERMATA
     input_nome = ft.TextField(
         label="Nome Paziente",
         border_color=ft.Colors.BLUE_400,
@@ -34,9 +68,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
             ft.dropdown.Option("Visita Specialistica"),
         ],
     )
-    
-    # Correzione dell'errore: assegniamo l'evento on_change qui sotto
-    dropdown_visita.on_change = lambda e: aggiorna_griglia_orari()
 
     testo_data = ft.Text(
         "Nessun giorno selezionato",
@@ -50,39 +81,15 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         color=ft.Colors.GREY_400,
     )
 
-    def cambio_data(e):
-        nonlocal data_selezionata
-
-        if date_picker.value:
-            data_selezionata = date_picker.value.strftime("%Y-%m-%d")
-
-            testo_data.value = (
-                f"📅 Data: {date_picker.value.strftime('%d/%m/%Y')}"
-            )
-
-            aggiorna_griglia_orari()
-
-    def cambio_ora(ora):
-        nonlocal ora_selezionata
-
-        ora_selezionata = ora
-        testo_ora.value = f"⏰ Ora: {ora}"
-        page.update()
-
-    date_picker = ft.DatePicker(
-        on_change=cambio_data,
-    )
-
-    page.overlay.append(date_picker)
-
     griglia_orari = ft.Row(
         wrap=True,
         visible=False,
     )
 
-    # Funzione dinamica che genera gli orari in base alla tipologia di visita
     def aggiorna_griglia_orari():
         if not data_selezionata or not dropdown_visita.value:
+            griglia_orari.visible = False
+            page.update()
             return
 
         griglia_orari.controls.clear()
@@ -108,6 +115,37 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         griglia_orari.visible = True
         page.update()
 
+    def quando_cambia_visita(e):
+        aggiorna_griglia_orari()
+
+    dropdown_visita.on_change = quando_cambia_visita
+
+    def cambio_data(e):
+        nonlocal data_selezionata
+        if date_picker.value:
+            data_selezionata = date_picker.value.strftime("%Y-%m-%d")
+            testo_data.value = (
+                f"📅 Data: {date_picker.value.strftime('%d/%m/%Y')}"
+            )
+            aggiorna_griglia_orari()
+
+    def cambio_ora(ora):
+        nonlocal ora_selezionata
+        ora_selezionata = ora
+        testo_ora.value = f"⏰ Ora: {ora}"
+        page.update()
+
+    date_picker = ft.DatePicker(
+        on_change=cambio_data,
+    )
+
+    def apri_calendario(e):
+        date_picker.open = True
+        page.update()
+
+    page.overlay.append(date_picker)
+
+    # 3. FUNZIONE DI CONFERMA PULITA E SENZA CREAZIONE DI COMPONENTI AL VOLO
     def conferma(e):
         if (
             not input_nome.value
@@ -129,58 +167,13 @@ def crea_vista_prenota(page: ft.Page, torna_home):
             ora_selezionata,
         )
 
-        def chiudi_dialog(e):
-            dialog.open = False
-            page.update()
-            torna_home(e)
+        # Cambiamo solo il valore testuale dentro il pop-up già esistente
+        testo_ticket_dinamico.value = ticket
+        
+        # Accendiamo l'interruttore dell'apertura
+        dialog_conferma.open = True
+        page.update()
 
-        dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text(
-                "Prenotazione Confermata",
-                color=ft.Colors.GREEN_400,
-            ),
-            content=ft.Column(
-                [
-                    ft.Text(
-                        "Il tuo ticket univoco è:",
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    ft.Container(
-                        content=ft.Text(
-                            ticket,
-                            size=22,
-                            weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.BLACK,
-                        ),
-                        bgcolor=ft.Colors.AMBER_300,
-                        padding=10,
-                        border_radius=8,
-                    ),
-                ],
-                tight=True,
-            ),
-            actions=[
-                ft.TextButton(
-                    "OK",
-                    on_click=chiudi_dialog,
-                )
-            ],
-        )
-
-        page.open(dialog)
-
-    date_picker = ft.DatePicker(
-        on_change=cambio_data,
-    )
-
-    # Inserisci questa funzione qui:
-    def apri_calendario():
-        date_picker.open = True  # Dice a Flet di mostrare il calendario
-        page.update()            # Forza l'aggiornamento grafico della pagina
-
-    page.overlay.append(date_picker)
-    
     return ft.Column(
         [
             ft.IconButton(
@@ -200,7 +193,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
             ft.ElevatedButton(
                 "Seleziona Giorno",
                 icon=ft.Icons.CALENDAR_MONTH,
-                on_click=lambda _: apri_calendario(), # Chiama la funzione di apertura
+                on_click=apri_calendario,
             ),
 
             testo_data,
@@ -219,129 +212,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         scroll=ft.ScrollMode.AUTO,
         expand=True,
     )
-
-
-def crea_vista_visualizza(torna_home):
-    lista_visite = ft.Column(
-        scroll=ft.ScrollMode.AUTO,
-        expand=True,
-    )
-
-    dati = ottieni_visite_db()
-
-    if not dati:
-        lista_visite.controls.append(
-            ft.Text(
-                "Nessuna visita prenotata.",
-                color=ft.Colors.GREY_500,
-            )
-        )
-    else:
-        for data_ora, tipo, ticket in dati:
-            lista_visite.controls.append(
-                ft.Card(
-                    content=ft.Container(
-                        padding=15,
-                        content=ft.Column(
-                            [
-                                ft.Text(
-                                    f"📅 Data/Ora: {data_ora}",
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-                                ft.Text(f"🩺 Tipo visita: {tipo}"),
-                                ft.Text(
-                                    f"🎫 Ticket: {ticket}",
-                                    color=ft.Colors.BLUE_300,
-                                ),
-                            ]
-                        ),
-                    )
-                )
-            )
-
-    return ft.Column(
-        [
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                on_click=torna_home,
-            ),
-
-            ft.Text(
-                "Le Tue Visite",
-                size=24,
-                weight=ft.FontWeight.BOLD,
-            ),
-
-            lista_visite,
-        ],
-        expand=True,
-    )
-
-
-def crea_vista_disdici(page: ft.Page, torna_home):
-    lista_disdici = ft.Column(
-        scroll=ft.ScrollMode.AUTO,
-        expand=True,
-    )
-
-    def cancella(ticket):
-        elimina_prenotazione_db(ticket)
-        rinfresca()
-
-    def rinfresca():
-        lista_disdici.controls.clear()
-
-        dati = ottieni_visite_db()
-
-        if not dati:
-            lista_disdici.controls.append(
-                ft.Text(
-                    "Nessuna visita da disdire.",
-                    color=ft.Colors.GREY_500,
-                )
-            )
-        else:
-            for data_ora, tipo, ticket in dati:
-                lista_disdici.controls.append(
-                    ft.ListTile(
-                        leading=ft.Icon(
-                            ft.Icons.CANCEL,
-                            color=ft.Colors.RED_400,
-                        ),
-                        title=ft.Text(data_ora),
-                        subtitle=ft.Text(
-                            f"{tipo} | Ticket: {ticket}"
-                        ),
-                        trailing=ft.IconButton(
-                            icon=ft.Icons.DELETE,
-                            icon_color=ft.Colors.RED_500,
-                            on_click=lambda e, t=ticket: cancella(t),
-                        ),
-                    )
-                )
-
-        page.update()
-
-    rinfresca()
-
-    return ft.Column(
-        [
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                on_click=torna_home,
-            ),
-
-            ft.Text(
-                "Annulla una Visita",
-                size=24,
-                weight=ft.FontWeight.BOLD,
-            ),
-
-            lista_disdici,
-        ],
-        expand=True,
-    )
-
 
 def crea_vista_visualizza(torna_home):
     lista_visite = ft.Column(
