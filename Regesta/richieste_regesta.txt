@@ -8,3 +8,5 @@ obbiettivi(miei):
 -menù interattivo e personalizzabile
 -orario basato sul tipo di visita
 -prenotazione tramite ticket univoco
+-calendario per le prenotazioni
+
