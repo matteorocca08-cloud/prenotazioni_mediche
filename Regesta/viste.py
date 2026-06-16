@@ -6,14 +6,14 @@ from database import (
     ottieni_visite_db,
     elimina_prenotazione_db,
     conta_visite_concorrenti,
-    CONFIG_MEDICI,  # <-- ASSICURATI CHE CI SIA QUESTA RIGA QUI!
+    CONFIG_MEDICI,
 )
 
 def crea_vista_prenota(page: ft.Page, torna_home):
     data_selezionata = ""
     ora_selezionata = ""
 
-    # 1. POP-UP DI CONFERMA PRENOTAZIONE (Caricato preventivamente in memoria)
+    # 1. POP-UP DI CONFERMA PRENOTAZIONE
     testo_ticket_dinamico = ft.Text(
         "", 
         size=22, 
@@ -54,21 +54,11 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     
     page.overlay.append(dialog_conferma)
 
-    # 2. CREAZIONE DEI COMPONENTI GRAFICI DELL'INTERFACCIA
+    # 2. CREAZIONE DEI COMPONENTI GRAFICI (Senza alcun evento che causi crash)
     input_nome = ft.TextField(
         label="Nome Paziente",
         border_color=ft.Colors.BLUE_400,
     )
-
-    # Funzione interna per ripulire la selezione quando l'utente cambia prestazione
-    def reset_selezione_visita(e):
-        nonlocal data_selezionata, ora_selezionata
-        data_selezionata = ""
-        ora_selezionata = ""
-        testo_data.value = "Visita modificata. Seleziona nuovamente il giorno."
-        testo_data.color = ft.Colors.AMBER_400
-        griglia_orari.controls.clear()
-        page.update()
 
     dropdown_visita = ft.Dropdown(
         label="Tipo di Visita",
@@ -78,8 +68,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
             ft.dropdown.Option("Dentista"),
             ft.dropdown.Option("Visita Specialistica"),
         ],
-        value=None,  # <--- Rimosso il valore di default: ora all'inizio è vuoto!
-        on_select=reset_selezione_visita
+        value=None,  
     )
 
     testo_data = ft.Text(
@@ -120,11 +109,9 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         max_medici = CONFIG_MEDICI.get(tipo, 1)
 
         for ora in orari_disponibili:
-            # Controllo disponibilità medici dal database
             occupati = conta_visite_concorrenti(tipo, data_selezionata, ora)
             is_completo = occupati >= max_medici
 
-            # Corretto: Passiamo la stringa direttamente come primo argomento senza "text="
             if is_completo:
                 pulsante = ft.OutlinedButton(
                     f"{ora} (Completo)",
@@ -150,69 +137,55 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         griglia_orari.visible = True
         page.update()
 
-    def quando_cambia_visita(e):
-        # Risoluzione Bug Stato Orfano: resetta l'orario se l'utente cambia tipo di visita
-        nonlocal ora_selezionata
-        ora_selezionata = ""
-        testo_ora.value = "Nessun orario selezionato"
-        aggiorna_griglia_orari()
-
-    dropdown_visita.on_change = quando_cambia_visita
-
     def cambio_data(e):
         nonlocal data_selezionata, ora_selezionata
         if e.control.value:
-            # Importiamo timedelta direttamente qui per evitare conflitti di nomi
             from datetime import timedelta
             
-            # Aggiungiamo le 3 ore di sicurezza usando timedelta appena importato
             data_corretta = e.control.value + timedelta(hours=3)
-            
-            # Estraiamo l'anno, mese e giorno corretti
             data_selezionata = f"{data_corretta.year}-{data_corretta.month:02d}-{data_corretta.day:02d}"
-            
-            # Aggiorniamo il testo visibile per l'utente
             testo_data.value = f"📅 Data: {data_corretta.day:02d}/{data_corretta.month:02d}/{data_corretta.year}"
+            testo_data.color = ft.Colors.WHITE
             
-            # Logica originale di reset per l'orario
             ora_selezionata = ""
             testo_ora.value = "Nessun orario selezionato"
+            testo_ora.color = ft.Colors.GREY_400  
             aggiorna_griglia_orari()
+
     def cambio_ora(ora):
         nonlocal ora_selezionata
         ora_selezionata = ora
         testo_ora.value = f"⏰ Ora: {ora}"
+        testo_ora.color = ft.Colors.GREEN_400  
         page.update()
 
-    # Risoluzione Bug Passato Remoto: prima data selezionabile impostata a OGGI
     date_picker = ft.DatePicker(
         first_date=datetime.now(),
         on_change=cambio_data,
     )
 
     def apri_calendario(e):
+        # Se l'utente clicca il calendario senza aver scelto la visita, lo avvisiamo qui
+        if not dropdown_visita.value:
+            testo_data.value = "⚠️ Seleziona prima il tipo di visita!"
+            testo_data.color = ft.Colors.RED_400
+            page.update()
+            return
         date_picker.open = True
         page.update()
 
     page.overlay.append(date_picker)
 
-    # 3. LOGICA DI CONFERMA MESSA IN SICUREZZA
+    # 3. LOGICA DI CONFERMA SICURA E ADATTIVA
     def conferma(e):
-        # Risoluzione Bug Spazio Vuoto: controllo con .strip() sui campi di testo
-        if (
-            not input_nome.value or not input_nome.value.strip()
-            or not dropdown_visita.value
-            or not data_selezionata
-            or not ora_selezionata
-        ):
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text("Compila tutti i campi correttamente!")
-            )
-            page.snack_bar.open = True
-            page.update()
-            return
+        nome_pulito = input_nome.value.strip() if input_nome.value else ""
 
-        # Risoluzione Bug Doppio Clic: disabilita subito il bottone durante l'operazione
+        if not nome_pulito or not dropdown_visita.value or not data_selezionata or not ora_selezionata:
+            testo_ora.value = "⚠️ ERRORE: Non hai compilato tutti i campi!"
+            testo_ora.color = ft.Colors.RED_400  
+            page.update()
+            return  
+
         conferma_btn.disabled = True
         conferma_btn.text = "Salvataggio..."
         page.update()
@@ -229,7 +202,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
             dialog_conferma.open = True
             
         finally:
-            # Ripristina lo stato del bottone se l'utente dovesse tornare sulla pagina
             conferma_btn.disabled = False
             conferma_btn.text = "Conferma Prenotazione"
             page.update()
@@ -246,28 +218,22 @@ def crea_vista_prenota(page: ft.Page, torna_home):
                 icon=ft.Icons.ARROW_BACK,
                 on_click=torna_home,
             ),
-
             ft.Text(
                 "Nuova Prenotazione",
                 size=24,
                 weight=ft.FontWeight.BOLD,
             ),
-
             input_nome,
             dropdown_visita,
-
             ft.ElevatedButton(
                 "Seleziona Giorno",
                 icon=ft.Icons.CALENDAR_MONTH,
                 on_click=apri_calendario,
             ),
-
             testo_data,
             griglia_orari,
             testo_ora,
-
             ft.Divider(),
-            
             conferma_btn,
         ],
         spacing=15,
@@ -282,7 +248,6 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
         expand=True,
     )
 
-    # 1. POP-UP PER MOSTRARE IL TICKET IN GRANDE (Configurato in memoria)
     testo_dettaglio_ticket = ft.Text("", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK)
     testo_dettaglio_info = ft.Text("", size=16, color=ft.Colors.WHITE)
 
@@ -300,7 +265,7 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
                     bgcolor=ft.Colors.AMBER_400,
                     padding=15,
                     border_radius=8,
-                    alignment=ft.Alignment(0, 0), # Fix Allineamento sicuro per tutte le versioni di Flet
+                    alignment=ft.Alignment(0, 0),
                 ),
                 ft.Divider(),
                 testo_dettaglio_info,
@@ -314,18 +279,15 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
-    # PUNTO 4 BLINDATO: Evita l'accumulo di duplicati nell'overlay quando si naviga avanti/indietro
     if dialog_ticket not in page.overlay:
         page.overlay.append(dialog_ticket)
 
-    # 2. FUNZIONE INTERNA PER APRIRE IL POP-UP CON I DATI SPECIFICI DELLA VISITA
     def mostra_ticket_grande(data_ora, tipo, ticket):
         testo_dettaglio_ticket.value = ticket
         testo_dettaglio_info.value = f"📅 Data/Ora: {data_ora}\n🩺 Tipo visita: {tipo}"
         dialog_ticket.open = True
         page.update()
 
-    # 3. CARICAMENTO DATI DAL DATABASE
     dati = ottieni_visite_db()
 
     if not dati:
@@ -338,10 +300,9 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
     else:
         for data_ora, tipo, ticket in dati:
             lista_visite.controls.append(
-                # Il GestureDetector intercetta il click sull'intera tessera
                 ft.GestureDetector(
                     on_tap=lambda e, d=data_ora, t=tipo, tk=ticket: mostra_ticket_grande(d, t, tk),
-                    mouse_cursor=ft.MouseCursor.CLICK, # Mostra l'icona della manina (Clickable)
+                    mouse_cursor=ft.MouseCursor.CLICK,
                     content=ft.Card(
                         content=ft.Container(
                             padding=15,
@@ -369,20 +330,17 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
                 icon=ft.Icons.ARROW_BACK,
                 on_click=torna_home,
             ),
-
             ft.Text(
                 "Le Tue Visite",
                 size=24,
                 weight=ft.FontWeight.BOLD,
             ),
-
             lista_visite,
         ],
         expand=True,
     )
 
 def crea_vista_disdici(page: ft.Page, torna_home):
-    # Supporto di memoria per sapere quale riga l'utente ha intenzione di eliminare
     ticket_da_cancellare = ""
 
     lista_disdici = ft.Column(
@@ -390,7 +348,6 @@ def crea_vista_disdici(page: ft.Page, torna_home):
         expand=True,
     )
 
-    # 4. GESTIONE DEL POP-UP DI SICUREZZA PER L'ELIMINAZIONE
     def chiudi_dialog_elimina(e):
         dialog_elimina.open = False
         page.update()
@@ -399,11 +356,10 @@ def crea_vista_disdici(page: ft.Page, torna_home):
         nonlocal ticket_da_cancellare
         if ticket_da_cancellare:
             elimina_prenotazione_db(ticket_da_cancellare)
-            ticket_da_cancellare = ""  # Svuota il contenitore temporaneo
+            ticket_da_cancellare = ""
             dialog_elimina.open = False
-            rinfresca()  # Ricarica la lista aggiornata a schermo
+            rinfresca()
             
-            # Piccolo feedback visivo in basso ad avvenuta operazione
             page.snack_bar = ft.SnackBar(
                 content=ft.Text("Prenotazione annullata con successo.")
             )
@@ -427,15 +383,14 @@ def crea_vista_disdici(page: ft.Page, torna_home):
     
     page.overlay.append(dialog_elimina)
 
-    def richiedi_cancellazione(ticket):
+    def requesting_cancellazione(ticket):
         nonlocal ticket_da_cancellare
-        ticket_da_cancellare = ticket  # Memorizza il ticket corrente
-        dialog_elimina.open = True     # Attiva l'interruttore del pop-up
+        ticket_da_cancellare = ticket
+        dialog_elimina.open = True
         page.update()
 
     def rinfresca():
         lista_disdici.controls.clear()
-
         dati = ottieni_visite_db()
 
         if not dati:
@@ -460,12 +415,10 @@ def crea_vista_disdici(page: ft.Page, torna_home):
                         trailing=ft.IconButton(
                             icon=ft.Icons.DELETE,
                             icon_color=ft.Colors.RED_500,
-                            # Agganciato il controllo preventivo anziché la cancellazione immediata
-                            on_click=lambda e, t=ticket: richiedi_cancellazione(t),
+                            on_click=lambda e, t=ticket: requesting_cancellazione(t),
                         ),
                     )
                 )
-
         page.update()
 
     rinfresca()
@@ -476,13 +429,11 @@ def crea_vista_disdici(page: ft.Page, torna_home):
                 icon=ft.Icons.ARROW_BACK,
                 on_click=torna_home,
             ),
-
             ft.Text(
                 "Annulla una Visita",
                 size=24,
                 weight=ft.FontWeight.BOLD,
             ),
-
             lista_disdici,
         ],
         expand=True,
