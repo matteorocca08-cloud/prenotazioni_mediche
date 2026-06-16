@@ -60,14 +60,26 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         border_color=ft.Colors.BLUE_400,
     )
 
+    # Funzione interna per ripulire la selezione quando l'utente cambia prestazione
+    def reset_selezione_visita(e):
+        nonlocal data_selezionata, ora_selezionata
+        data_selezionata = ""
+        ora_selezionata = ""
+        testo_data.value = "Visita modificata. Seleziona nuovamente il giorno."
+        testo_data.color = ft.Colors.AMBER_400
+        griglia_orari.controls.clear()
+        page.update()
+
     dropdown_visita = ft.Dropdown(
         label="Tipo di Visita",
-        border_color=ft.Colors.BLUE_400,
+        width=340,
         options=[
             ft.dropdown.Option("Controllo Generale"),
             ft.dropdown.Option("Dentista"),
             ft.dropdown.Option("Visita Specialistica"),
         ],
+        value=None,  # <--- Rimosso il valore di default: ora all'inizio è vuoto!
+        on_select=reset_selezione_visita
     )
 
     testo_data = ft.Text(
@@ -149,16 +161,23 @@ def crea_vista_prenota(page: ft.Page, torna_home):
 
     def cambio_data(e):
         nonlocal data_selezionata, ora_selezionata
-        if date_picker.value:
-            data_selezionata = date_picker.value.strftime("%Y-%m-%d")
-            testo_data.value = (
-                f"📅 Data: {date_picker.value.strftime('%d/%m/%Y')}"
-            )
-            # Risoluzione Bug Stato Orfano: resetta l'orario se l'utente cambia il giorno sul calendario
+        if e.control.value:
+            # Importiamo timedelta direttamente qui per evitare conflitti di nomi
+            from datetime import timedelta
+            
+            # Aggiungiamo le 3 ore di sicurezza usando timedelta appena importato
+            data_corretta = e.control.value + timedelta(hours=3)
+            
+            # Estraiamo l'anno, mese e giorno corretti
+            data_selezionata = f"{data_corretta.year}-{data_corretta.month:02d}-{data_corretta.day:02d}"
+            
+            # Aggiorniamo il testo visibile per l'utente
+            testo_data.value = f"📅 Data: {data_corretta.day:02d}/{data_corretta.month:02d}/{data_corretta.year}"
+            
+            # Logica originale di reset per l'orario
             ora_selezionata = ""
             testo_ora.value = "Nessun orario selezionato"
             aggiorna_griglia_orari()
-
     def cambio_ora(ora):
         nonlocal ora_selezionata
         ora_selezionata = ora
