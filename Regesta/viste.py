@@ -10,6 +10,7 @@ from database import (
 )
 
 def crea_vista_prenota(page: ft.Page, torna_home):
+    tipo_visita_scelta = None
     data_selezionata = ""
     ora_selezionata = ""
 
@@ -54,21 +55,58 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     
     page.overlay.append(dialog_conferma)
 
-    # 2. CREAZIONE DEI COMPONENTI GRAFICI (Senza alcun evento che causi crash)
+    # 2. SELETTORE DI PRESTAZIONE AD ALTA COMPATIBILITÀ (Sostituto totale del Dropdown)
+    testo_prestazione_selezionata = ft.Text(
+        "Nessuna prestazione selezionata",
+        size=16,
+        weight=ft.FontWeight.W_500,
+        color=ft.Colors.AMBER_400
+    )
+
+    # Contenitore dei bottoni opzione (Finto dropdown a scomparsa)
+    opzioni_visite = ft.Column(visible=False, spacing=5)
+
+    def mostra_nascondi_opzioni(e):
+        opzioni_visite.visible = not opzioni_visite.visible
+        page.update()
+
+    def seleziona_prestazione(tipo):
+        nonlocal tipo_visita_scelta, data_selezionata, ora_selezionata
+        tipo_visita_scelta = tipo
+        testo_prestazione_selezionata.value = f"🩺 Prestazione: {tipo}"
+        testo_prestazione_selezionata.color = ft.Colors.GREEN_400
+        
+        # AZZERAMENTO TOTALE E ISTANTANEO delle selezioni temporali precedenti
+        data_selezionata = ""
+        ora_selezionata = ""
+        testo_data.value = "Visita modificata. Seleziona nuovamente il giorno."
+        testo_data.color = ft.Colors.AMBER_400
+        testo_ora.value = "Nessun orario selezionato"
+        testo_ora.color = ft.Colors.GREY_400
+        
+        # Nascondiamo sia le opzioni aperte che la vecchia griglia orari
+        opzioni_visite.visible = False
+        griglia_orari.visible = False
+        page.update()
+
+    # Popoliamo le opzioni usando la proprietà 'content' universale per i testi
+    opzioni_visite.controls = [
+        ft.TextButton(content=ft.Text("Controllo Generale", size=16), on_click=lambda e: seleziona_prestazione("Controllo Generale")),
+        ft.TextButton(content=ft.Text("Dentista", size=16), on_click=lambda e: seleziona_prestazione("Dentista")),
+        ft.TextButton(content=ft.Text("Visita Specialistica", size=16), on_click=lambda e: seleziona_prestazione("Visita Specialistica")),
+    ]
+
+    pulsante_menu = ft.ElevatedButton(
+        "Scegli il Tipo di Visita",
+        icon=ft.Icons.ARROW_DROP_DOWN_CIRCLE,
+        width=340,
+        height=50,
+        on_click=mostra_nascondi_opzioni
+    )
+
     input_nome = ft.TextField(
         label="Nome Paziente",
         border_color=ft.Colors.BLUE_400,
-    )
-
-    dropdown_visita = ft.Dropdown(
-        label="Tipo di Visita",
-        width=340,
-        options=[
-            ft.dropdown.Option("Controllo Generale"),
-            ft.dropdown.Option("Dentista"),
-            ft.dropdown.Option("Visita Specialistica"),
-        ],
-        value=None,  
     )
 
     testo_data = ft.Text(
@@ -89,14 +127,14 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     )
 
     def aggiorna_griglia_orari():
-        if not data_selezionata or not dropdown_visita.value:
+        if not data_selezionata or not tipo_visita_scelta:
             griglia_orari.visible = False
             page.update()
             return
 
         griglia_orari.controls.clear()
         
-        tipo = dropdown_visita.value
+        tipo = tipo_visita_scelta
         if tipo == "Controllo Generale":
             orari_disponibili = ["09:00", "09:20", "09:40", "10:00", "10:20", "10:40", "11:00", "15:00", "15:20", "15:40"]
         elif tipo == "Dentista":
@@ -155,7 +193,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     def cambio_ora(ora):
         nonlocal ora_selezionata
         ora_selezionata = ora
-        testo_ora.value = f"⏰ Ora: {ora}"
+        testo_ora.value = f"⏰ Ora selezionata: {ora}"
         testo_ora.color = ft.Colors.GREEN_400  
         page.update()
 
@@ -165,22 +203,23 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     )
 
     def apri_calendario(e):
-        # Se l'utente clicca il calendario senza aver scelto la visita, lo avvisiamo qui
-        if not dropdown_visita.value:
-            testo_data.value = "⚠️ Seleziona prima il tipo di visita!"
+        if not tipo_visita_scelta:
+            testo_data.value = "⚠️ Errore: Seleziona prima il tipo di visita!"
             testo_data.color = ft.Colors.RED_400
+            griglia_orari.visible = False
             page.update()
             return
+            
         date_picker.open = True
         page.update()
 
     page.overlay.append(date_picker)
 
-    # 3. LOGICA DI CONFERMA SICURA E ADATTIVA
+    # 3. LOGICA DI CONFERMA SICURA
     def conferma(e):
         nome_pulito = input_nome.value.strip() if input_nome.value else ""
 
-        if not nome_pulito or not dropdown_visita.value or not data_selezionata or not ora_selezionata:
+        if not nome_pulito or not tipo_visita_scelta or not data_selezionata or not ora_selezionata:
             testo_ora.value = "⚠️ ERRORE: Non hai compilato tutti i campi!"
             testo_ora.color = ft.Colors.RED_400  
             page.update()
@@ -192,8 +231,8 @@ def crea_vista_prenota(page: ft.Page, torna_home):
 
         try:
             ticket = inserisci_prenotazione_db(
-                input_nome.value.strip(),
-                dropdown_visita.value,
+                nome_pulito,
+                tipo_visita_scelta,
                 data_selezionata,
                 ora_selezionata,
             )
@@ -201,6 +240,9 @@ def crea_vista_prenota(page: ft.Page, torna_home):
             testo_ticket_dinamico.value = ticket
             dialog_conferma.open = True
             
+        except Exception as ex:
+            testo_ora.value = f"❌ {str(ex)}"
+            testo_ora.color = ft.Colors.RED_400
         finally:
             conferma_btn.disabled = False
             conferma_btn.text = "Conferma Prenotazione"
@@ -224,7 +266,9 @@ def crea_vista_prenota(page: ft.Page, torna_home):
                 weight=ft.FontWeight.BOLD,
             ),
             input_nome,
-            dropdown_visita,
+            pulsante_menu,
+            opzioni_visite,
+            testo_prestazione_selezionata,
             ft.ElevatedButton(
                 "Seleziona Giorno",
                 icon=ft.Icons.CALENDAR_MONTH,
@@ -241,13 +285,8 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         expand=True,
     )
 
-
 def crea_vista_visualizza(page: ft.Page, torna_home):
-    lista_visite = ft.Column(
-        scroll=ft.ScrollMode.AUTO,
-        expand=True,
-    )
-
+    lista_visite = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
     testo_dettaglio_ticket = ft.Text("", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK)
     testo_dettaglio_info = ft.Text("", size=16, color=ft.Colors.WHITE)
 
@@ -273,9 +312,7 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
             tight=True,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
-        actions=[
-            ft.TextButton("Chiudi", on_click=chiudi_dialog_ticket)
-        ],
+        actions=[ft.TextButton("Chiudi", on_click=chiudi_dialog_ticket)],
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
@@ -289,14 +326,8 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
         page.update()
 
     dati = ottieni_visite_db()
-
     if not dati:
-        lista_visite.controls.append(
-            ft.Text(
-                "Nessuna visita prenotata.",
-                color=ft.Colors.GREY_500,
-            )
-        )
+        lista_visite.controls.append(ft.Text("Nessuna visita prenotata.", color=ft.Colors.GREY_500))
     else:
         for data_ora, tipo, ticket in dati:
             lista_visite.controls.append(
@@ -308,15 +339,9 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
                             padding=15,
                             content=ft.Column(
                                 [
-                                    ft.Text(
-                                        f"📅 Data/Ora: {data_ora}",
-                                        weight=ft.FontWeight.BOLD,
-                                    ),
+                                    ft.Text(f"📅 Data/Ora: {data_ora}", weight=ft.FontWeight.BOLD),
                                     ft.Text(f"🩺 Tipo visita: {tipo}"),
-                                    ft.Text(
-                                        f"🎫 Ticket: {ticket}",
-                                        color=ft.Colors.BLUE_300,
-                                    ),
+                                    ft.Text(f"🎫 Ticket: {ticket}", color=ft.Colors.BLUE_300),
                                 ]
                             ),
                         )
@@ -326,15 +351,8 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
 
     return ft.Column(
         [
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                on_click=torna_home,
-            ),
-            ft.Text(
-                "Le Tue Visite",
-                size=24,
-                weight=ft.FontWeight.BOLD,
-            ),
+            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=torna_home),
+            ft.Text("Le Tue Visite", size=24, weight=ft.FontWeight.BOLD),
             lista_visite,
         ],
         expand=True,
@@ -342,11 +360,7 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
 
 def crea_vista_disdici(page: ft.Page, torna_home):
     ticket_da_cancellare = ""
-
-    lista_disdici = ft.Column(
-        scroll=ft.ScrollMode.AUTO,
-        expand=True,
-    )
+    lista_disdici = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
 
     def chiudi_dialog_elimina(e):
         dialog_elimina.open = False
@@ -359,10 +373,7 @@ def crea_vista_disdici(page: ft.Page, torna_home):
             ticket_da_cancellare = ""
             dialog_elimina.open = False
             rinfresca()
-            
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text("Prenotazione annullata con successo.")
-            )
+            page.snack_bar = ft.SnackBar(content=ft.Text("Prenotazione annullata con successo."))
             page.snack_bar.open = True
             page.update()
 
@@ -372,12 +383,7 @@ def crea_vista_disdici(page: ft.Page, torna_home):
         content=ft.Text("Sei sicuro di voler disdire questa visita? L'operazione non è reversibile."),
         actions=[
             ft.TextButton("No, mantieni", on_click=chiudi_dialog_elimina),
-            ft.TextButton(
-                "Sì, disdici", 
-                icon=ft.Icons.DELETE_FOREVER,
-                icon_color=ft.Colors.RED_500,
-                on_click=conferma_ed_elimina
-            ),
+            ft.TextButton("Sì, disdici", icon=ft.Icons.DELETE_FOREVER, icon_color=ft.Colors.RED_500, on_click=conferma_ed_elimina),
         ],
     )
     
@@ -392,26 +398,15 @@ def crea_vista_disdici(page: ft.Page, torna_home):
     def rinfresca():
         lista_disdici.controls.clear()
         dati = ottieni_visite_db()
-
         if not dati:
-            lista_disdici.controls.append(
-                ft.Text(
-                    "Nessuna visita da disdire.",
-                    color=ft.Colors.GREY_500,
-                )
-            )
+            lista_disdici.controls.append(ft.Text("Nessuna visita da disdire.", color=ft.Colors.GREY_500))
         else:
             for data_ora, tipo, ticket in dati:
                 lista_disdici.controls.append(
                     ft.ListTile(
-                        leading=ft.Icon(
-                            ft.Icons.CANCEL,
-                            color=ft.Colors.RED_400,
-                        ),
+                        leading=ft.Icon(ft.Icons.CANCEL, color=ft.Colors.RED_400),
                         title=ft.Text(data_ora),
-                        subtitle=ft.Text(
-                            f"{tipo} | Ticket: {ticket}"
-                        ),
+                        subtitle=ft.Text(f"{tipo} | Ticket: {ticket}"),
                         trailing=ft.IconButton(
                             icon=ft.Icons.DELETE,
                             icon_color=ft.Colors.RED_500,
@@ -425,15 +420,8 @@ def crea_vista_disdici(page: ft.Page, torna_home):
 
     return ft.Column(
         [
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                on_click=torna_home,
-            ),
-            ft.Text(
-                "Annulla una Visita",
-                size=24,
-                weight=ft.FontWeight.BOLD,
-            ),
+            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=torna_home),
+            ft.Text("Annulla una Visita", size=24, weight=ft.FontWeight.BOLD),
             lista_disdici,
         ],
         expand=True,
