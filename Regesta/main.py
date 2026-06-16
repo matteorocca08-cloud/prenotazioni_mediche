@@ -4,21 +4,26 @@ import viste as v
 
 
 def main(page: ft.Page):
+    # Configurazione moderna dell'aspetto grafico
     page.title = "Medical Booking Hub"
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "#0F172A"
-
-    # --- CONFIGURAZIONE SMARTPHONE SIMULATOR ---
-    page.window_width = 390          # Larghezza standard di un telefono
-    page.window_height = 800         # Altezza standard di un telefono
-    page.window_resizable = False    # Impedisce di ridimensionarla per non rompere il layout
+    
+    # --- CONFIGURAZIONE SCHERMO INTERO NATIVO ---
+    # Usiamo le proprietà classiche che non spaccano l'avvio
+    page.window_maximized = True
+    page.window_borderless = True
+    page.update()
     # --------------------------------------------
+    
+    # Allineamento dei componenti al centro esatto dello schermo
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
     inizializza_db()
 
     contenitore_app = ft.Container(
-        expand=True,
-        padding=20,
+        padding=40,
     )
 
     def mostra_home(e=None):
@@ -37,72 +42,39 @@ def main(page: ft.Page):
         contenitore_app.content = v.crea_vista_disdici(page, mostra_home)
         page.update()
 
+    # Struttura dei bottoni con la sintassi pulita
     vista_home = ft.Column(
         controls=[
-            # Sostituito ft.margin.only con ft.Margin(0, 40, 0, 40) per massima compatibilità
             ft.Container(
                 content=ft.Text(
                     "Medical Hub",
-                    size=32,
+                    size=40,
                     weight=ft.FontWeight.BOLD,
                     color=ft.Colors.BLUE_400,
                 ),
-                margin=ft.Margin(0, 40, 0, 40), # (sinistra, sopra, destra, sotto)
+                margin=ft.Margin(0, 0, 0, 40),
             ),
             ft.ElevatedButton(
-                content=ft.Row(
-                    [
-                        ft.Icon(ft.Icons.CALENDAR_MONTH),
-                        ft.Text(
-                            "Prenota una Visita",
-                            size=18,
-                            weight=ft.FontWeight.W_500,
-                        ),
-                    ]
-                ),
-                height=70,
-                width=340,
-                on_click=vai_a_prenota,
+                content=ft.Row([ft.Icon(ft.Icons.CALENDAR_MONTH), ft.Text("Prenota una Visita", size=18, weight=ft.FontWeight.W_500)], alignment=ft.MainAxisAlignment.CENTER),
+                height=70, width=450, on_click=vai_a_prenota,
             ),
             ft.ElevatedButton(
-                content=ft.Row(
-                    [
-                        ft.Icon(ft.Icons.FORMAT_LIST_BULLETED),
-                        ft.Text(
-                            "Vedi Visite Prenotate",
-                            size=18,
-                            weight=ft.FontWeight.W_500,
-                        ),
-                    ]
-                ),
-                height=70,
-                width=340,
-                on_click=vai_a_visualizza,
+                content=ft.Row([ft.Icon(ft.Icons.FORMAT_LIST_BULLETED), ft.Text("Vedi Visite Prenotate", size=18, weight=ft.FontWeight.W_500)], alignment=ft.MainAxisAlignment.CENTER),
+                height=70, width=450, on_click=vai_a_visualizza,
             ),
             ft.ElevatedButton(
-                content=ft.Row(
-                    [
-                        ft.Icon(ft.Icons.DELETE),
-                        ft.Text(
-                            "Disdici una Visita",
-                            size=18,
-                            weight=ft.FontWeight.W_500,
-                        ),
-                    ]
-                ),
-                height=70,
-                width=340,
-                on_click=vai_a_disdici,
+                content=ft.Row([ft.Icon(ft.Icons.DELETE), ft.Text("Disdici una Visita", size=18, weight=ft.FontWeight.W_500)], alignment=ft.MainAxisAlignment.CENTER),
+                height=70, width=450, on_click=vai_a_disdici,
             ),
         ],
-        spacing=15,
+        spacing=20,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
     contenitore_app.content = vista_home
-
     page.add(contenitore_app)
 
 
 if __name__ == "__main__":
+    # Torniamo a ft.app che è supportato ovunque ed evita il TypeError del terminale
     ft.app(target=main)
