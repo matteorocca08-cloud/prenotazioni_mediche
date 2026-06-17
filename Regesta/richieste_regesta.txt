@@ -10,11 +10,11 @@ obbiettivi(nostri):
 -prenotazione tramite ticket univoco
 
 TO_DO:
--database
 -lock nelle tls
 -front end da rifare
+
+IN_LAVORAZIONE:
 -gestione + utenti (database online)
--sicurezza da implementare
 -versione admin (dottori)[non necessaria]
 
 
