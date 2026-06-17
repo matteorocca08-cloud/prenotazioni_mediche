@@ -426,3 +426,5 @@ def crea_vista_disdici(page: ft.Page, torna_home):
         ],
         expand=True,
     )
+
+#eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkZW52enJtZ2FhZHhzeXhzcnJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MTAyOTksImV4cCI6MjA5NzE4NjI5OX0.Amv_LUyJnzOOz8P7WZYUoxAbdIkz7Hi1KH5nB-jHcsE
