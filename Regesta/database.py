@@ -100,3 +100,18 @@ def elimina_prenotazione_db(ticket):
     except Exception as e:
         print(f"Errore durante l'eliminazione da Supabase: {e}")
         return False
+    
+# CREDENZIALI FISSE PER I MEDICI
+CREDENZIALI_MEDICI = {
+    "generale": {"password": "password123", "reparto": "Controllo Generale"},
+    "dentista": {"password": "dentistapass", "reparto": "Dentista"},
+    "specialista": {"password": "specialistapass", "reparto": "Visita Specialistica"}
+}
+
+def verifica_login_medico(username, password):
+    """Verifica se l'username e la password corrispondono a un medico e restituisce il reparto."""
+    user = username.lower().strip()
+    if user in CREDENZIALI_MEDICI:
+        if CREDENZIALI_MEDICI[user]["password"] == password:
+            return CREDENZIALI_MEDICI[user]["reparto"]
+    return None

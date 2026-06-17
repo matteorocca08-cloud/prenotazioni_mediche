@@ -1,6 +1,7 @@
 import flet as ft
 from database import inizializza_db
 import viste as v
+import viste_medici as vm
 
 
 def main(page: ft.Page):
@@ -41,6 +42,12 @@ def main(page: ft.Page):
     def vai_a_disdici(e):
         contenitore_app.content = v.crea_vista_disdici(page, mostra_home)
         page.update()
+    
+    def vai_a_medici(e):
+        contenitore_app.content = vm.crea_vista_medici(page, mostra_home)
+        page.update()
+
+    
 
     # Struttura dei bottoni con la sintassi pulita
     vista_home = ft.Column(
@@ -65,6 +72,11 @@ def main(page: ft.Page):
             ft.ElevatedButton(
                 content=ft.Row([ft.Icon(ft.Icons.DELETE), ft.Text("Disdici una Visita", size=18, weight=ft.FontWeight.W_500)], alignment=ft.MainAxisAlignment.CENTER),
                 height=70, width=450, on_click=vai_a_disdici,
+            ),
+            ft.ElevatedButton(
+                content=ft.Row([ft.Icon(ft.Icons.LOCK_PERSON), ft.Text("Area Riservata Medici", size=18, weight=ft.FontWeight.W_500)], alignment=ft.MainAxisAlignment.CENTER),
+                height=70, width=450, on_click=vai_a_medici,
+                style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE_GREY_800) # Colore diverso per distinguerlo
             ),
         ],
         spacing=20,
