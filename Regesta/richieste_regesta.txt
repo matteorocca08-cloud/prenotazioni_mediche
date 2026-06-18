@@ -14,7 +14,8 @@ TO_DO:
 -front end da rifare
 
 IN_LAVORAZIONE:
--gestione + utenti (database online)
 -versione admin (dottori)[non necessaria]
 
-
+COMPLETATE:
+-vista medici
+-gestione + utenti (database online)
