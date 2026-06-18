@@ -15,6 +15,7 @@ TO_DO:
 
 IN_LAVORAZIONE:
 -versione admin (dottori)[non necessaria]
+-front end da rifare
 
 COMPLETATE:
 -vista medici
