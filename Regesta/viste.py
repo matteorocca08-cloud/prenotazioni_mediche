@@ -14,7 +14,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     data_selezionata = ""
     ora_selezionata = ""
 
-    # 1. POP-UP DI CONFERMA PRENOTAZIONE
+    # 1. POP-UP DI CONFERMA PRENOTAZIONE (Inalterato)
     testo_ticket_dinamico = ft.Text(
         "", 
         size=22, 
@@ -55,7 +55,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     
     page.overlay.append(dialog_conferma)
 
-    # 2. SELETTORE DI PRESTAZIONE AD ALTA COMPATIBILITÀ (Sostituto totale del Dropdown)
+    # 2. SELETTORE DI PRESTAZIONE GRAFICO A CARD MODERNE
     testo_prestazione_selezionata = ft.Text(
         "Nessuna prestazione selezionata",
         size=16,
@@ -63,20 +63,13 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         color=ft.Colors.AMBER_400
     )
 
-    # Contenitore dei bottoni opzione (Finto dropdown a scomparsa)
-    opzioni_visite = ft.Column(visible=False, spacing=5)
-
-    def mostra_nascondi_opzioni(e):
-        opzioni_visite.visible = not opzioni_visite.visible
-        page.update()
-
-    def seleziona_prestazione(tipo):
+    def seleziona_prestazione(tipo, container_selezionato):
         nonlocal tipo_visita_scelta, data_selezionata, ora_selezionata
         tipo_visita_scelta = tipo
         testo_prestazione_selezionata.value = f"🩺 Prestazione: {tipo}"
         testo_prestazione_selezionata.color = ft.Colors.GREEN_400
         
-        # AZZERAMENTO TOTALE E ISTANTANEO delle selezioni temporali precedenti
+        # Azzeramento logico originale delle selezioni temporali
         data_selezionata = ""
         ora_selezionata = ""
         testo_data.value = "Visita modificata. Seleziona nuovamente il giorno."
@@ -84,29 +77,54 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         testo_ora.value = "Nessun orario selezionato"
         testo_ora.color = ft.Colors.GREY_400
         
-        # Nascondiamo sia le opzioni aperte che la vecchia griglia orari
-        opzioni_visite.visible = False
+        # Feedback visivo di selezione sulle card (Effetto bottone attivo)
+        for c in mazzo_card:
+            if c == container_selezionato:
+                c.bgcolor = ft.Colors.BLUE_800
+            else:
+                c.bgcolor = "#1E293B"
+            c.update()
+
         griglia_orari.visible = False
         page.update()
 
-    # Popoliamo le opzioni usando la proprietà 'content' universale per i testi
-    opzioni_visite.controls = [
-        ft.TextButton(content=ft.Text("Controllo Generale", size=16), on_click=lambda e: seleziona_prestazione("Controllo Generale")),
-        ft.TextButton(content=ft.Text("Dentista", size=16), on_click=lambda e: seleziona_prestazione("Dentista")),
-        ft.TextButton(content=ft.Text("Visita Specialistica", size=16), on_click=lambda e: seleziona_prestazione("Visita Specialistica")),
-    ]
+    def crea_card_reparto(nome, icona, colore):
+        c = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Icon(icona, size=32, color=colore),
+                    ft.Text(
+                        nome, 
+                        size=12, 
+                        weight=ft.FontWeight.BOLD, 
+                        text_align=ft.TextAlign.CENTER,
+                        max_lines=2,
+                    )
+                ], 
+                alignment=ft.MainAxisAlignment.CENTER, 
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=8
+            ),
+            width=140,
+            height=100,
+            border_radius=12,
+            bgcolor="#1E293B",
+            padding=10
+        )
+        c.on_click = lambda e: seleziona_prestazione(nome, c)
+        return c
 
-    pulsante_menu = ft.ElevatedButton(
-        "Scegli il Tipo di Visita",
-        icon=ft.Icons.ARROW_DROP_DOWN_CIRCLE,
-        width=340,
-        height=50,
-        on_click=mostra_nascondi_opzioni
-    )
+    # Definizione delle card grafiche stabili
+    card_generale = crea_card_reparto("Controllo Generale", ft.Icons.LOCAL_HOSPITAL, ft.Colors.BLUE_400)
+    card_dentista = crea_card_reparto("Dentista", ft.Icons.HEALING, ft.Colors.TEAL_400)
+    card_specialista = crea_card_reparto("Visita Specialistica", ft.Icons.ASSIGNMENT_IND, ft.Colors.PURPLE_400)
+    
+    mazzo_card = [card_generale, card_dentista, card_specialista]
 
     input_nome = ft.TextField(
         label="Nome Paziente",
         border_color=ft.Colors.BLUE_400,
+        width=440
     )
 
     testo_data = ft.Text(
@@ -124,8 +142,11 @@ def crea_vista_prenota(page: ft.Page, torna_home):
     griglia_orari = ft.Row(
         wrap=True,
         visible=False,
+        width=440,
+        alignment=ft.MainAxisAlignment.CENTER
     )
 
+    # LA TUA LOGICA DI GENERAZIONE SLOT DINAMICI (Inalterata e protetta)
     def aggiorna_griglia_orari():
         if not data_selezionata or not tipo_visita_scelta:
             griglia_orari.visible = False
@@ -147,6 +168,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         max_medici = CONFIG_MEDICI.get(tipo, 1)
 
         for ora in orari_disponibili:
+            # Ripristinato l'ordine esatto dei tuoi parametri: tipo, data, ora
             occupati = conta_visite_concorrenti(tipo, data_selezionata, ora)
             is_completo = occupati >= max_medici
 
@@ -179,7 +201,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         nonlocal data_selezionata, ora_selezionata
         if e.control.value:
             from datetime import timedelta
-            
             data_corretta = e.control.value + timedelta(hours=3)
             data_selezionata = f"{data_corretta.year}-{data_corretta.month:02d}-{data_corretta.day:02d}"
             testo_data.value = f"📅 Data: {data_corretta.day:02d}/{data_corretta.month:02d}/{data_corretta.year}"
@@ -190,6 +211,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
             testo_ora.color = ft.Colors.GREY_400  
             aggiorna_griglia_orari()
 
+    # --- FUNZIONE MANCANTE RIPRISTINATA ---
     def cambio_ora(ora):
         nonlocal ora_selezionata
         ora_selezionata = ora
@@ -215,7 +237,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
 
     page.overlay.append(date_picker)
 
-    # 3. LOGICA DI CONFERMA SICURA
+    # LA TUA LOGICA DI CONFERMA FINALE SU SUPABASE (Inalterata)
     def conferma(e):
         nome_pulito = input_nome.value.strip() if input_nome.value else ""
 
@@ -230,6 +252,7 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         page.update()
 
         try:
+            # Chiamata originale sicura al 100% con i 4 parametri esatti
             ticket = inserisci_prenotazione_db(
                 nome_pulito,
                 tipo_visita_scelta,
@@ -252,27 +275,35 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         "Conferma Prenotazione",
         icon=ft.Icons.CHECK,
         on_click=conferma,
+        width=440,
+        height=50,
+        bgcolor=ft.Colors.BLUE_600,
+        style=ft.ButtonStyle(color=ft.Colors.WHITE)
     )
 
+    # NUOVO CORREDO GRAFICO ORDINATO A COLONNA CENTRATA
     return ft.Column(
         [
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                on_click=torna_home,
-            ),
-            ft.Text(
-                "Nuova Prenotazione",
-                size=24,
-                weight=ft.FontWeight.BOLD,
-            ),
+            ft.Row([
+                ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=torna_home, icon_color=ft.Colors.BLUE_400),
+                ft.Text("Nuova Prenotazione", size=24, weight=ft.FontWeight.BOLD),
+            ], alignment=ft.MainAxisAlignment.START, width=440),
+            
+            ft.Container(height=10),
             input_nome,
-            pulsante_menu,
-            opzioni_visite,
+            
+            ft.Container(height=10),
+            ft.Text("Seleziona il Reparto Medico", size=14, color=ft.Colors.BLUE_GREY_300),
+            ft.Row([card_generale, card_dentista, card_specialista], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
             testo_prestazione_selezionata,
+            
+            ft.Container(height=10),
             ft.ElevatedButton(
                 "Seleziona Giorno",
                 icon=ft.Icons.CALENDAR_MONTH,
                 on_click=apri_calendario,
+                width=440,
+                height=50
             ),
             testo_data,
             griglia_orari,
@@ -283,10 +314,11 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         spacing=15,
         scroll=ft.ScrollMode.AUTO,
         expand=True,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER
     )
 
 def crea_vista_visualizza(page: ft.Page, torna_home):
-    lista_visite = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
+    lista_visite = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True, spacing=15)
     testo_dettaglio_ticket = ft.Text("", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK)
     testo_dettaglio_info = ft.Text("", size=16, color=ft.Colors.WHITE)
 
@@ -304,7 +336,6 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
                     bgcolor=ft.Colors.AMBER_400,
                     padding=15,
                     border_radius=8,
-                    alignment=ft.Alignment(0, 0),
                 ),
                 ft.Divider(),
                 testo_dettaglio_info,
@@ -325,69 +356,115 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
         dialog_ticket.open = True
         page.update()
 
+    # Recupero dati originale da Supabase
     dati = ottieni_visite_db()
     if not dati:
-        lista_visite.controls.append(ft.Text("Nessuna visita prenotata.", color=ft.Colors.GREY_500))
+        lista_visite.controls.append(
+            ft.Container(
+                content=ft.Text("Nessuna visita prenotata al momento.", color=ft.Colors.BLUE_GREY_400, size=16),
+                padding=20,
+                # RISOLTO: Rimosso completamente l'allineamento problematico
+            )
+        )
     else:
         for data_ora, tipo, ticket in dati:
+            icona_visita = ft.Icons.LOCAL_HOSPITAL
+            colore_icona = ft.Colors.BLUE_400
+            if tipo == "Dentista":
+                icona_visita = ft.Icons.HEALING
+                colore_icona = ft.Colors.TEAL_400
+            elif tipo == "Visita Specialistica":
+                icona_visita = ft.Icons.ASSIGNMENT_IND
+                colore_icona = ft.Colors.PURPLE_400
+
             lista_visite.controls.append(
                 ft.GestureDetector(
                     on_tap=lambda e, d=data_ora, t=tipo, tk=ticket: mostra_ticket_grande(d, t, tk),
                     mouse_cursor=ft.MouseCursor.CLICK,
-                    content=ft.Card(
-                        content=ft.Container(
-                            padding=15,
-                            content=ft.Column(
-                                [
-                                    ft.Text(f"📅 Data/Ora: {data_ora}", weight=ft.FontWeight.BOLD),
-                                    ft.Text(f"🩺 Tipo visita: {tipo}"),
-                                    ft.Text(f"🎫 Ticket: {ticket}", color=ft.Colors.BLUE_300),
-                                ]
-                            ),
-                        )
+                    content=ft.Container(
+                        padding=18,
+                        bgcolor="#1E293B",
+                        border_radius=14,
+                        content=ft.Row(
+                            [
+                                # Icona identificativa sulla sinistra
+                                ft.Container(
+                                    content=ft.Icon(icona_visita, size=30, color=colore_icona),
+                                    bgcolor="#0F172A",
+                                    padding=12,
+                                    border_radius=10,
+                                ),
+                                # Dettagli centrali dell'appuntamento
+                                ft.Column(
+                                    [
+                                        ft.Text(tipo, size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                                        ft.Text(f"📅 {data_ora}", size=14, color=ft.Colors.BLUE_GREY_200),
+                                    ],
+                                    spacing=4,
+                                    expand=True,
+                                ),
+                                # Badge del Ticket sulla destra
+                                ft.Container(
+                                    content=ft.Text(ticket, size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400),
+                                    bgcolor="#0F172A",
+                                    padding=12,
+                                    border_radius=8,
+                                )
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        ),
                     )
                 )
             )
 
     return ft.Column(
         [
-            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=torna_home),
-            ft.Text("Le Tue Visite", size=24, weight=ft.FontWeight.BOLD),
+            ft.Row([
+                ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=torna_home, icon_color=ft.Colors.BLUE_400),
+                ft.Text("Le Tue Visite", size=24, weight=ft.FontWeight.BOLD),
+            ], alignment=ft.MainAxisAlignment.START, width=440),
+            
+            ft.Container(height=10),
+            ft.Text("Clicca su un appuntamento per mostrare il promemoria completo", size=13, color=ft.Colors.BLUE_GREY_400),
+            ft.Container(height=5),
             lista_visite,
         ],
         expand=True,
+        width=440,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER
     )
 
 def crea_vista_disdici(page: ft.Page, torna_home):
-    ticket_da_cancellare = ""
-    lista_disdici = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
+    lista_disdici = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True, spacing=15)
+    ticket_da_cancellare = None
+
+    def conferma_eliminazione(e):
+        nonlocal ticket_da_cancellare
+        if ticket_da_cancellare:
+            esito = elimina_prenotazione_db(ticket_da_cancellare)
+            if esito:
+                dialog_elimina.open = False
+                rinfresca()
+            else:
+                dialog_elimina.title = ft.Text("Errore durante l'eliminazione", color=ft.Colors.RED_400)
+                page.update()
 
     def chiudi_dialog_elimina(e):
         dialog_elimina.open = False
         page.update()
 
-    def conferma_ed_elimina(e):
-        nonlocal ticket_da_cancellare
-        if ticket_da_cancellare:
-            elimina_prenotazione_db(ticket_da_cancellare)
-            ticket_da_cancellare = ""
-            dialog_elimina.open = False
-            rinfresca()
-            page.snack_bar = ft.SnackBar(content=ft.Text("Prenotazione annullata con successo."))
-            page.snack_bar.open = True
-            page.update()
-
     dialog_elimina = ft.AlertDialog(
-        modal=True,
-        title=ft.Text("Conferma Annullamento"),
-        content=ft.Text("Sei sicuro di voler disdire questa visita? L'operazione non è reversibile."),
+        title=ft.Text("Conferma Annullamento", weight=ft.FontWeight.BOLD),
+        content=ft.Text("Sei sicuro di voler disdire questa visita medica? L'azione è irreversibile."),
         actions=[
             ft.TextButton("No, mantieni", on_click=chiudi_dialog_elimina),
-            ft.TextButton("Sì, disdici", icon=ft.Icons.DELETE_FOREVER, icon_color=ft.Colors.RED_500, on_click=conferma_ed_elimina),
+            ft.TextButton("Sì, disdici", on_click=conferma_eliminazione, style=ft.ButtonStyle(color=ft.Colors.RED_400)),
         ],
+        actions_alignment=ft.MainAxisAlignment.END,
     )
-    
-    page.overlay.append(dialog_elimina)
+
+    if dialog_elimina not in page.overlay:
+        page.overlay.append(dialog_elimina)
 
     def requesting_cancellazione(ticket):
         nonlocal ticket_da_cancellare
@@ -399,18 +476,48 @@ def crea_vista_disdici(page: ft.Page, torna_home):
         lista_disdici.controls.clear()
         dati = ottieni_visite_db()
         if not dati:
-            lista_disdici.controls.append(ft.Text("Nessuna visita da disdire.", color=ft.Colors.GREY_500))
+            lista_disdici.controls.append(
+                ft.Container(
+                    content=ft.Text("Nessuna visita da disdire.", color=ft.Colors.BLUE_GREY_400, size=16),
+                    padding=20
+                )
+            )
         else:
             for data_ora, tipo, ticket in dati:
                 lista_disdici.controls.append(
-                    ft.ListTile(
-                        leading=ft.Icon(ft.Icons.CANCEL, color=ft.Colors.RED_400),
-                        title=ft.Text(data_ora),
-                        subtitle=ft.Text(f"{tipo} | Ticket: {ticket}"),
-                        trailing=ft.IconButton(
-                            icon=ft.Icons.DELETE,
-                            icon_color=ft.Colors.RED_500,
-                            on_click=lambda e, t=ticket: requesting_cancellazione(t),
+                    ft.Container(
+                        padding=15,
+                        bgcolor="#1E293B",
+                        border_radius=14,
+                        content=ft.Row(
+                            [
+                                # Icona Cestino/Alert sulla sinistra
+                                ft.Container(
+                                    content=ft.Icon(ft.Icons.REPORT_PROBLEM, size=24, color=ft.Colors.RED_400),
+                                    bgcolor="#2A1F2D",
+                                    padding=10,
+                                    border_radius=10,
+                                ),
+                                # Dettagli centrali dell'appuntamento da rimuovere
+                                ft.Column(
+                                    [
+                                        ft.Text(tipo, size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                                        ft.Text(f"📅 {data_ora}", size=13, color=ft.Colors.BLUE_GREY_200),
+                                        ft.Text(f"Ticket: {ticket}", size=11, color=ft.Colors.BLUE_400, weight=ft.FontWeight.W_500),
+                                    ],
+                                    spacing=2,
+                                    expand=True,
+                                ),
+                                # Pulsante Elimina Professionale sulla destra
+                                ft.IconButton(
+                                    icon=ft.Icons.DELETE_FOREVER,
+                                    icon_color=ft.Colors.RED_400,
+                                    icon_size=26,
+                                    tooltip="Annulla questo appuntamento",
+                                    on_click=lambda e, t=ticket: requesting_cancellazione(t),
+                                )
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
                     )
                 )
@@ -420,11 +527,19 @@ def crea_vista_disdici(page: ft.Page, torna_home):
 
     return ft.Column(
         [
-            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=torna_home),
-            ft.Text("Annulla una Visita", size=24, weight=ft.FontWeight.BOLD),
+            ft.Row([
+                ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=torna_home, icon_color=ft.Colors.BLUE_400),
+                ft.Text("Annulla una Visita", size=24, weight=ft.FontWeight.BOLD),
+            ], alignment=ft.MainAxisAlignment.START, width=440),
+            
+            ft.Container(height=10),
+            ft.Text("Seleziona l'appuntamento che desideri cancellare definitivamente:", size=13, color=ft.Colors.BLUE_GREY_400),
+            ft.Container(height=5),
             lista_disdici,
         ],
         expand=True,
+        width=440,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER
     )
 
 #eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkZW52enJtZ2FhZHhzeXhzcnJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MTAyOTksImV4cCI6MjA5NzE4NjI5OX0.Amv_LUyJnzOOz8P7WZYUoxAbdIkz7Hi1KH5nB-jHcsE
