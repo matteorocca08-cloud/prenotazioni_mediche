@@ -168,7 +168,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         max_medici = CONFIG_MEDICI.get(tipo, 1)
 
         for ora in orari_disponibili:
-            # Ripristinato l'ordine esatto dei tuoi parametri: tipo, data, ora
             occupati = conta_visite_concorrenti(tipo, data_selezionata, ora)
             is_completo = occupati >= max_medici
 
@@ -211,7 +210,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
             testo_ora.color = ft.Colors.GREY_400  
             aggiorna_griglia_orari()
 
-    # --- FUNZIONE MANCANTE RIPRISTINATA ---
     def cambio_ora(ora):
         nonlocal ora_selezionata
         ora_selezionata = ora
@@ -237,7 +235,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
 
     page.overlay.append(date_picker)
 
-    # LA TUA LOGICA DI CONFERMA FINALE SU SUPABASE (Inalterata)
     def conferma(e):
         nome_pulito = input_nome.value.strip() if input_nome.value else ""
 
@@ -252,7 +249,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         page.update()
 
         try:
-            # Chiamata originale sicura al 100% con i 4 parametri esatti
             ticket = inserisci_prenotazione_db(
                 nome_pulito,
                 tipo_visita_scelta,
@@ -281,7 +277,6 @@ def crea_vista_prenota(page: ft.Page, torna_home):
         style=ft.ButtonStyle(color=ft.Colors.WHITE)
     )
 
-    # NUOVO CORREDO GRAFICO ORDINATO A COLONNA CENTRATA
     return ft.Column(
         [
             ft.Row([
@@ -356,14 +351,12 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
         dialog_ticket.open = True
         page.update()
 
-    # Recupero dati originale da Supabase
     dati = ottieni_visite_db()
     if not dati:
         lista_visite.controls.append(
             ft.Container(
                 content=ft.Text("Nessuna visita prenotata al momento.", color=ft.Colors.BLUE_GREY_400, size=16),
                 padding=20,
-                # RISOLTO: Rimosso completamente l'allineamento problematico
             )
         )
     else:
@@ -387,14 +380,12 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
                         border_radius=14,
                         content=ft.Row(
                             [
-                                # Icona identificativa sulla sinistra
                                 ft.Container(
                                     content=ft.Icon(icona_visita, size=30, color=colore_icona),
                                     bgcolor="#0F172A",
                                     padding=12,
                                     border_radius=10,
                                 ),
-                                # Dettagli centrali dell'appuntamento
                                 ft.Column(
                                     [
                                         ft.Text(tipo, size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
@@ -403,7 +394,6 @@ def crea_vista_visualizza(page: ft.Page, torna_home):
                                     spacing=4,
                                     expand=True,
                                 ),
-                                # Badge del Ticket sulla destra
                                 ft.Container(
                                     content=ft.Text(ticket, size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400),
                                     bgcolor="#0F172A",
@@ -491,14 +481,12 @@ def crea_vista_disdici(page: ft.Page, torna_home):
                         border_radius=14,
                         content=ft.Row(
                             [
-                                # Icona Cestino/Alert sulla sinistra
                                 ft.Container(
                                     content=ft.Icon(ft.Icons.REPORT_PROBLEM, size=24, color=ft.Colors.RED_400),
                                     bgcolor="#2A1F2D",
                                     padding=10,
                                     border_radius=10,
                                 ),
-                                # Dettagli centrali dell'appuntamento da rimuovere
                                 ft.Column(
                                     [
                                         ft.Text(tipo, size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
@@ -508,7 +496,6 @@ def crea_vista_disdici(page: ft.Page, torna_home):
                                     spacing=2,
                                     expand=True,
                                 ),
-                                # Pulsante Elimina Professionale sulla destra
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE_FOREVER,
                                     icon_color=ft.Colors.RED_400,

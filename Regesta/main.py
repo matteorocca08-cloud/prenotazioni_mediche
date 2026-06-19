@@ -10,22 +10,19 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "#0F172A"
     
-    # --- CONFIGURAZIONE SCHERMO INTERO NATIVO ---
-    page.window_maximized = True
-    page.window_borderless = True
-    page.update()
-    # --------------------------------------------
-    
-    # Allineamento dei componenti al centro esatto dello schermo
+    # --- ALLINEAMENTO GENERALE ---
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
+    # Inizializza la connessione al database
     inizializza_db()
 
+    # Contenitore principale dell'applicazione con padding reattivo
     contenitore_app = ft.Container(
-        padding=40,
+        padding=10,
     )
 
+    # --- FUNZIONI DI NAVIGAZIONE ---
     def mostra_home(e=None):
         contenitore_app.content = vista_home
         page.update()
@@ -46,68 +43,60 @@ def main(page: ft.Page):
         contenitore_app.content = vm.crea_vista_medici(page, mostra_home)
         page.update()
 
-    # --- FUNZIONI DI SUPPORTO PER IL NUOVO FRONT-END ---
-    def crea_card_home(titolo, sottotitolo, icona, colore_icona, on_click):
-        """Genera una card moderna con effetto hover per la dashboard."""
+    # --- FUNZIONE COSTRUZIONE CARD REATTIVE ---
+    def crea_card_home(titolo, sottotitolo, icona, colore_icona, azione):
         return ft.Container(
             content=ft.Column(
                 [
-                    ft.Icon(icona, size=44, color=colore_icona),
-                    ft.Container(height=12),
-                    ft.Text(titolo, size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                    # Corretto qui: rimosso 'name=' per evitare l'errore di inizializzazione
+                    ft.Icon(icona, color=colore_icona, size=36),
                     ft.Container(height=4),
-                    ft.Text(sottotitolo, size=12, color=ft.Colors.BLUE_GREY_200, text_align=ft.TextAlign.CENTER),
+                    ft.Text(titolo, size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                    ft.Container(height=2),
+                    ft.Text(sottotitolo, size=11, color=ft.Colors.BLUE_GREY_200, text_align=ft.TextAlign.CENTER),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            width=220,
-            height=220,
+            width=160,  # Dimensione ottimale per schermi mobile stretti
+            height=150,
             bgcolor="#1E293B",
             border_radius=16,
-            padding=20,
-            on_click=on_click,
-            # Effetto dinamico al passaggio del mouse
-            on_hover=lambda e: edita_stato_hover(e),
+            padding=10,
+            on_click=azione,
         )
 
-    def edita_stato_hover(e):
-        e.control.bgcolor = "#273549" if e.data == "true" else "#1E293B"
-        e.control.update()
-
-    # --- NUOVO FRONT-END: INTERFACCIA A GRIGLIA (DASHBOARD) ---
+    # --- VISTA HOME RESPONSIVA ---
     vista_home = ft.Column(
-        controls=[
+        [
             ft.Container(
                 content=ft.Column([
-                    ft.Text("Medical Hub", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400),
-                    ft.Text("Seleziona un'operazione per iniziare", size=14, color=ft.Colors.BLUE_GREY_300),
+                    ft.Text("Medical Booking Hub", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400, text_align=ft.TextAlign.CENTER),
+                    ft.Container(height=5),
+                    ft.Text("Seleziona un'operazione per iniziare", size=13, color=ft.Colors.BLUE_GREY_300, text_align=ft.TextAlign.CENTER),
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                margin=ft.Margin(0, 0, 0, 40),
+                margin=ft.Margin(0, 0, 0, 15),
             ),
+            # Row con wrap=True si adatta dinamicamente allo schermo disponibile
             ft.Row(
-                [
-                    crea_card_home("Prenota", "Fissa un nuovo appuntamento", ft.Icons.CALENDAR_MONTH, ft.Colors.GREEN_400, vai_a_prenota),
-                    crea_card_home("I tuoi appuntamenti", "Visualizza i ticket attivi", ft.Icons.SPACE_DASHBOARD, ft.Colors.BLUE_400, vai_a_visualizza),
+                controls=[
+                    crea_card_home("Prenota", "Fissa appuntamento", ft.Icons.CALENDAR_MONTH, ft.Colors.GREEN_400, vai_a_prenota),
+                    crea_card_home("I tuoi impegni", "Visualizza i ticket", ft.Icons.SPACE_DASHBOARD, ft.Colors.BLUE_400, vai_a_visualizza),
+                    crea_card_home("Disdici", "Annulla visita", ft.Icons.CANCEL_OUTLINED, ft.Colors.RED_400, vai_a_disdici),
+                    crea_card_home("Area Medici", "Accesso protetto", ft.Icons.LOCK_PERSON, ft.Colors.ORANGE_400, vai_a_medici),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
-                spacing=24,
-            ),
-            ft.Container(height=4),
-            ft.Row(
-                [
-                    crea_card_home("Disdici", "Annulla una prenotazione", ft.Icons.CANCEL_OUTLINED, ft.Colors.RED_400, vai_a_disdici),
-                    crea_card_home("Area Medici", "Accesso protetto personale", ft.Icons.LOCK_PERSON, ft.Colors.ORANGE_400, vai_a_medici),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                spacing=24,
+                spacing=12,
+                run_spacing=12,
+                wrap=True,
             ),
         ],
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        tight=True,
     )
 
-    # Avvio dell'applicazione impostando la home come schermata iniziale
+    # Inietta la home all'avvio
     contenitore_app.content = vista_home
     page.add(contenitore_app)
 
